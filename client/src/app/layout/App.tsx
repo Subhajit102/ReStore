@@ -3,7 +3,8 @@ import Header from "./Header";
 import { useState } from "react";
 import { ThemeProvider } from "@emotion/react";
 import { Outlet } from "react-router-dom";
-
+import 'react-toastify/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
 
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
   }
   return (
     <ThemeProvider theme={theme}>
+      <ToastContainer position="bottom-right" hideProgressBar theme="colored"/>
       <CssBaseline />
       <Header darkMode={darkMode} toggleDarkMode={toggleDarkMode}/>
       <Container>
