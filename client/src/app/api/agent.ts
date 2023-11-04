@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { router } from "../router/Routes";
 
 axios.defaults.baseURL = 'http://localhost:5074/api/';
+axios.defaults.withCredentials = true;
 const responseBody = (response: AxiosResponse) => response.data;
 const sleep = () => new Promise(resolve => setTimeout(resolve,500));
 
@@ -57,9 +58,16 @@ const TestErrors = {
 
 }
 
+const Basket = {
+    get: () => requests.get('basket'),
+    addItem: (proudctId:number, quantity:number = 1) => requests.post(`basket?productId=${proudctId}&quantity=${quantity}`,{}),
+    removeItem: (proudctId:number, quantity:number = 1) => requests.delete(`basket?productId=${proudctId}&quantity=${quantity}`),
+}
+
 const agent = {
     Catalog,
-    TestErrors
+    TestErrors,
+    Basket
 }
 
 export default agent;

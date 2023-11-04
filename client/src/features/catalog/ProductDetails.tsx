@@ -1,22 +1,55 @@
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Product } from "../../app/models/product";
-import { Divider, Grid, Table, TableBody, TableCell, TableContainer, TableRow, Typography } from "@mui/material";
+import { Divider, Grid, Table, TableBody, TableCell, TableContainer, TableRow, TextField, Typography } from "@mui/material";
 import agent from "../../app/api/agent";
 import NotFound from "../../app/errors/NotFound";
 import LoadingComponent from "../../app/layout/LoadingComponent";
+import { currencyFormat } from "../../app/utils/utils";
+import { useStoreContext } from "../../app/context/StoreContext";
+import { LoadingButton } from "@mui/lab";
 
 function ProductDetails() {
+    const {basket,setBasket,removeItem} = useStoreContext();
     const {id} = useParams<{id:string}>();
     const [product,setProduct] = useState<Product | null>(null);
     const [loading,setLoading] = useState(true);
+    const [quantity,setQuantity]=useState(0);
+    const [submitting,setSubmitting] = useState(false);
+    const item= basket?.items.find(i=> i.productId === product?.id);
 
     useEffect(()=>{
+        if(item) setQuantity(item.quantity);
         id && agent.Catalog.details(parseInt(id))
         .then(data => setProduct(data))
         .catch(error => console.log(error))
         .finally(() => setLoading(false));
-    },[id]);
+    },[id,item]);
+
+    function handleInputChange(event:ChangeEvent<HTMLInputElement>){
+        if(parseInt(event.currentTarget.value)>=0){
+            setQuantity(parseInt(event.currentTarget.value));
+        }
+    }
+
+    function handleUpdateCart(){
+        if(!product) return;
+        setSubmitting(true);
+        if(!item || quantity > item.quantity){
+            const updatedQuantity = item ? quantity - item.quantity : quantity;
+            agent.Basket.addItem(product.id, updatedQuantity)
+                .then(basket => setBasket(basket))
+                .catch(error => console.log(error))
+                .finally(()=> setSubmitting(false))
+        }
+        else {
+            const updatedQuantity =  item.quantity - quantity ;
+            agent.Basket.removeItem(product.id, updatedQuantity)
+                .then(() => removeItem(product.id, updatedQuantity))
+                .catch(error => console.log(error))
+                .finally(()=> setSubmitting(false))
+        }
+    }
 
     if(loading) return <LoadingComponent message="Loading product..."/>;
     if(!product) return <NotFound/>;
@@ -29,7 +62,7 @@ function ProductDetails() {
             <Grid item xs={6}>
                 <Typography variant="h3">{product.name}</Typography>
                 <Divider sx={{mb:2}}/>
-                <Typography variant="h4" color="secondary">${(product.price / 100).toFixed(2)}</Typography>
+                <Typography variant="h4" color="secondary">{currencyFormat(product.price)}</Typography>
                 <TableContainer>
                     <Table>
                         <TableBody>
@@ -56,6 +89,21 @@ function ProductDetails() {
                         </TableBody>
                     </Table>
                 </TableContainer>
+                <Grid container spacing={2}>
+                    <Grid item spacing={6}>
+                        <TextField onChange={handleInputChange} variant="outlined" type="number" label="Quantity in Cart" fullWidth value={quantity}/>
+                    </Grid>
+                    <Grid item spacing={6}>
+                        <LoadingButton 
+                        onClick={handleUpdateCart} 
+                        disabled={item?.quantity === quantity || (!item && quantity === 0)}
+                        loading={submitting} sx={{height: '55px'}} 
+                        color="primary" size="large" 
+                        variant="contained" fullWidth>
+                            {item ? "Update Quantity" : "Add to Cart"}
+                        </LoadingButton>
+                    </Grid>
+                </Grid>
             </Grid>
         </Grid>
     )
